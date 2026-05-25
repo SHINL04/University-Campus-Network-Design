@@ -1,0 +1,30 @@
+! ==========================================================
+! PROJECT: Enterprise WAN & Branch Office Connectivity
+! DEVICE:  DHAKA-BR-RTR01 (Dhaka Satellite Campus)
+! ==========================================================
+
+enable
+configure terminal
+hostname DHAKA-BR-RTR01
+
+! 1. CONFIGURE THE WAN INTERFACE (CONNECTING BACK TO HQ / ISP)
+interface GigabitEthernet0/0/0
+ description === PRIMARY WAN LINK TO MAIN CAMPUS HQ ===
+ ip address 10.0.0.2 255.255.255.252
+ no shutdown
+exit
+
+! 2. CONFIGURE THE LOCAL BRANCH LAN INTERFACE
+interface GigabitEthernet0/0/1
+ description === INTERNAL DOWNLINK TO DHAKA LOCAL ACCESS SWITCH ===
+ ip address 192.168.20.1 255.255.255.0
+ no shutdown
+exit
+! ==========================================================
+! DYNAMIC ROUTING CONFIGURATION: OSPF
+! ==========================================================
+router ospf 1
+ ! Dhaka advertises its WAN link and its unique internal LAN
+ network 10.0.0.0 0.0.0.3 area 0
+ network 192.168.20.0 0.0.0.255 area 0
+exit

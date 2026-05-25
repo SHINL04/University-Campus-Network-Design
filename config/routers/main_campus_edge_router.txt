@@ -1,0 +1,31 @@
+! ==========================================================
+! PROJECT: Enterprise WAN & Branch Office Connectivity
+! DEVICE:  HQ-EDGE-RTR01 (Main Campus Edge)
+! ==========================================================
+
+enable
+configure terminal
+hostname HQ-EDGE-RTR01
+
+! 1. CONFIGURE THE WAN INTERFACE (CONNECTING TO DHAKA / ISP)
+interface GigabitEthernet0/0/0
+ description === PRIMARY WAN LINK TO DHAKA SATELLITE CAMPUS ===
+ ip address 10.0.0.1 255.255.255.252
+ no shutdown
+exit
+
+! 2. CONFIGURE THE LAN INTERFACE (CONNECTING DOWN TO CORE SWITCH A)
+interface GigabitEthernet0/0/1
+ description === INTERNAL DOWNLINK TO CAMPUS-CORE-SWA ===
+ ip address 192.168.10.254 255.255.255.0
+ no shutdown
+exit
+! ==========================================================
+! DYNAMIC ROUTING CONFIGURATION: OSPF
+! ==========================================================
+router ospf 1
+ ! We advertise our local networks to our neighbors
+ ! Syntax: network [Network IP] [Wildcard Mask] area [Area ID]
+ network 10.0.0.0 0.0.0.3 area 0
+ network 192.168.10.0 0.0.0.255 area 0
+exit
