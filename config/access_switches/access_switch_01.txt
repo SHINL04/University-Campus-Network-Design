@@ -1,0 +1,65 @@
+! ==========================================================
+! PROJECT: University Mini-Campus Network Design
+! DEVICE:  Access Switch 01 (Academic Block)
+! TIER:    Access Layer
+! ==========================================================
+
+! 1. DEVICE IDENTIFICATION
+! -----------------------------------------
+! Enters configuration mode and gives the device a unique, professional hostname.
+enable
+configure terminal
+hostname ACAD-ACC-SW01
+
+! 2. CREATING THE LOGICAL LAYER 2 SEGMENTS (VLANs)
+! -----------------------------------------
+! We define the enterprise VLAN database. Without this, ports cannot handle traffic.
+vlan 10
+ name VLAN_STUDENTS
+vlan 20
+ name VLAN_FACULTY
+vlan 30
+ name VLAN_ADMIN
+vlan 40
+ name VLAN_IOT
+vlan 99
+ name VLAN_MGMT
+exit
+
+! 3. CONFIGURE ACCESS PORTS (USER CONNECTIONS)
+! -----------------------------------------
+! 'interface range' allows us to configure multiple ports at the exact same time.
+! 'switchport mode access' tells the switch a single device plugs here.
+! 'switchport access vlan X' locks that port down into that specific digital neighborhood.
+
+! Allocate Ports 1 to 10 for Students
+interface range FastEthernet 0/1 - 10
+ switchport mode access
+ switchport access vlan 10
+ description --- CONNECTS TO STUDENT LAPTOPS & LABS ---
+ spanning-tree portfast
+exit
+
+! Allocate Ports 11 to 15 for Faculty
+interface range FastEthernet 0/11 - 15
+ switchport mode access
+ switchport access vlan 20
+ description --- CONNECTS TO FACULTY COMPUTERS ---
+ spanning-tree portfast
+exit
+
+! 4. CONFIGURE TRUNK PORTS (THE HIGHWAY BACKBONE)
+! -----------------------------------------
+! Ports GigabitEthernet 0/1 and 0/2 are our high-speed uplinks to the Core Switch.
+! They must carry traffic for ALL student and faculty VLANs simultaneously.
+interface range GigabitEthernet 0/1 - 2
+ switchport mode trunk
+ switchport trunk allowed vlan 10,20,30,40,99
+ description === UPLINK TO CORE/DISTRIBUTION MULTILAYER SWITCH ===
+exit
+
+! 5. SAVE AND DEPLOY
+! -----------------------------------------
+! Exits configuration mode and saves the configuration to the switch's permanent NVRAM memory.
+end
+write memory

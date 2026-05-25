@@ -1,0 +1,100 @@
+! ==========================================================
+! PROJECT: University Mini-Campus Network Design
+! DEVICE:  Core Switch A (Main Server Room)
+! TIER:    Core / Distribution Layer (Collapsed Core)
+! ==========================================================
+
+! 1. SYSTEM INITIALIZATION & ROUTING ACTIVATION
+! -----------------------------------------
+enable
+configure terminal
+hostname CAMPUS-CORE-SWA
+
+! CRITICAL STEP: Out of the box, a Multilayer switch acts just like a normal switch.
+! This command turns on its routing brain, allowing it to act like a router.
+ip routing
+
+! 2. DEFINE THE CAMPUS VLAN DATABASE
+! -----------------------------------------
+! The Core switch must match the exact same VLAN IDs as the Access switch.
+vlan 10
+ name VLAN_STUDENTS
+vlan 20
+ name VLAN_FACULTY
+vlan 30
+ name VLAN_ADMIN
+vlan 40
+ name VLAN_IOT
+vlan 99
+ name VLAN_MGMT
+exit
+
+! 3. CONFIGURE INTER-VLAN ROUTING INTERFACES (SVIs)
+! -----------------------------------------
+! Here, we create the Virtual Router Gateways for each department.
+! Devices down in the classrooms will target these IPs to communicate outside their pool.
+
+! Gateway for Students Subnet
+interface Vlan 10
+ description === DEFAULT GATEWAY FOR VLAN_STUDENTS ===
+ ip address 192.168.10.1 255.255.255.128
+ no shutdown
+exit
+
+! Gateway for Faculty Subnet
+interface Vlan 20
+ description === DEFAULT GATEWAY FOR VLAN_FACULTY ===
+ ip address 192.168.10.129 255.255.255.192
+ no shutdown
+exit
+
+! Gateway for Administration Subnet
+interface Vlan 30
+ description === DEFAULT GATEWAY FOR VLAN_ADMIN ===
+ ip address 192.168.10.193 255.255.255.224
+ no shutdown
+exit
+
+! Gateway for IoT Subnet
+interface Vlan 40
+ description === DEFAULT GATEWAY FOR VLAN_IOT ===
+ ip address 192.168.10.225 255.255.255.224
+ no shutdown
+exit
+
+! 4. CONFIGURE DOWNLINK TRUNKS TO ACCESS SWITCHES
+! -----------------------------------------
+! This interface links directly down to ACAD-ACC-SW01's Gi0/1 interface.
+interface GigabitEthernet 0/1
+ description === DOWNLINK TO ACADEMIC ACCESS SWITCH 01 ===
+ ! Modern multilayer switches require defining the tagging protocol before changing mode.
+ switchport trunk encapsulation dot1q
+ switchport mode trunk
+ switchport trunk allowed vlan 10,20,30,40,99
+exit
+
+! 5. SAVE RUNNING CONFIGURATION
+! -----------------------------------------
+! ==========================================================
+! SECURITY ADDON: ACCESS CONTROL LISTS (ACLs)
+! ==========================================================
+
+! 1. DEFINING THE SECURITY RULEBOOK
+! We create an Extended Named ACL called 'SECURE_ADMIN_ZONE'
+ip access-list extended SECURE_ADMIN_ZONE
+
+ ! Rule 1: Block the entire Student subnet from hitting the Admin subnet
+ ! Syntax: deny ip [Source Subnet] [Wildcard Mask] [Destination Subnet] [Wildcard Mask]
+ deny ip 192.168.10.0 0.0.0.127 192.168.10.192 0.0.0.31
+ 
+ ! Rule 2: Allow all other legitimate traffic (e.g., Faculty or Internet) to pass through
+ permit ip any any
+exit
+
+! 2. ENFORCING THE RULES ON THE GATEWAY
+! We must physically attach this rulebook to the exit point of the Admin Network
+interface Vlan 30
+ ip access-group SECURE_ADMIN_ZONE out
+exit
+end
+write memory
